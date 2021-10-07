@@ -344,6 +344,12 @@ of a book, but you are not limited only by the book properties we described.
 Create your own book type of your dreams!
 -}
 
+data Book = Book {
+    bookTitle :: String,
+    bookAuthor :: String,
+    bookPages :: Int
+} deriving Show
+
 {- |
 =⚔️= Task 2
 
@@ -375,6 +381,21 @@ after the fight. The battle has the following possible outcomes:
 ♫ NOTE: In this task, you need to implement only a single round of the fight.
 
 -}
+
+data Actor = Actor {
+    actorHealth :: Int,
+    actorAttack :: Int,
+    actorGold :: Int
+} deriving Show
+
+type Knight = Actor
+type Monster = Actor
+
+fight :: Monster -> Knight -> Int
+fight (Actor mh ma mg) (Actor kh ka kg)
+    | mh - ka <= 0 = kg + mg
+    | kh - ma <= 0 = -1
+    | otherwise = kg
 
 {- |
 =🛡= Sum types
@@ -462,6 +483,13 @@ Create a simple enumeration for the meal types (e.g. breakfast). The one who
 comes up with the most number of names wins the challenge. Use your creativity!
 -}
 
+data Meal
+    = Breakfast
+    | Dinner
+    | Tea
+    | Supper
+    | Death
+
 {- |
 =⚔️= Task 4
 
@@ -481,6 +509,46 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city in total.
 -}
+
+data Castle = Castle String | WalledCastle String | None
+    deriving Show
+
+data Building = Church | Library
+    deriving Show
+
+data House = One | Two | Three | Four
+    deriving Show
+
+houseToInt :: House -> Int
+houseToInt house = case house of
+    One -> 1
+    Two -> 2
+    Three -> 3
+    Four -> 4
+
+data City = City {
+    cityCastle :: Castle,
+    cityBuilding :: Building,
+    cityHouses :: [House]
+} deriving Show
+
+buildCastle :: String -> City -> City
+buildCastle name city = case cityCastle city of
+    WalledCastle _ -> city { cityCastle = WalledCastle name }
+    _ -> city { cityCastle = Castle name }
+
+buildHouse :: House -> City -> City
+buildHouse house city = city { cityHouses = house : cityHouses city }
+
+buildWalls :: City -> City
+buildWalls city = case cityCastle city of
+    Castle name -> if countPeople (cityHouses city) >= 10
+        then city { cityCastle = WalledCastle name }
+        else city
+    _ -> city
+    where
+        countPeople :: [House] -> Int
+        countPeople houses = sum (map houseToInt houses)
 
 {-
 =🛡= Newtypes
@@ -562,22 +630,34 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+newtype Health = Health Int
+newtype Armor = Armor Int
+newtype Attack = Attack Int
+newtype Dexterity = Dexterity Int
+newtype Strength = Strength Int
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+newtype Damage = Damage Int
+newtype Defense = Defense Int
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage (Attack attack) (Strength strength)
+    = Damage (attack + strength)
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerDefense :: Armor -> Dexterity -> Defense
+calculatePlayerDefense (Armor armor) (Dexterity dexterity)
+    = Defense (armor * dexterity)
+
+calculatePlayerHit :: Damage -> Defense -> Health -> Health
+calculatePlayerHit (Damage damage) (Defense defense) (Health health)
+    = Health (health + defense - damage)
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -755,6 +835,18 @@ parametrise data types in places where values can be of any general type.
   maybe-treasure ;)
 -}
 
+data Dragon power
+
+data Chest treasure = Chest {
+    chestGold :: Int,
+    chestTreasure :: treasure
+}
+
+data Lair power treasure = Lair {
+    lairDragon :: Dragon power,
+    lairChest :: Maybe (Chest treasure)
+}
+
 {-
 =🛡= Typeclasses
 
@@ -912,6 +1004,28 @@ Implement instances of "Append" for the following types:
 class Append a where
     append :: a -> a -> a
 
+newtype Gold = Gold Int
+
+instance Append Gold where
+    append :: Gold -> Gold -> Gold
+    append (Gold a) (Gold b) = Gold (a + b)
+
+instance Append [a] where
+    append :: [a] -> [a] -> [a]
+    append = (++)
+
+-- said implement for "List", so I made a "List" newtype anyway
+newtype List a = List [a]
+
+instance Append (List a) where
+    append :: List a -> List a -> List a
+    append (List a) (List b) = List (append a b)
+
+instance Append a => Append (Maybe a) where
+    append :: Maybe a -> Maybe a -> Maybe a
+    append (Just x) (Just y) = Just (append x y)
+    append x Nothing = x
+    append Nothing x = x
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -973,6 +1087,27 @@ implement the following functions:
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
 
+data Day
+    = Monday
+    | Tuesday
+    | Wednesday
+    | Thursday
+    | Friday
+    | Saturday
+    | Sunday
+    deriving (Show, Enum, Bounded, Eq)
+
+isWeekend :: Day -> Bool
+isWeekend day = case day of
+    Saturday -> True
+    Sunday -> True
+    _ -> False
+
+nextDay :: Day -> Day
+nextDay day
+    | day == maxBound = minBound
+    | otherwise = succ day
+
 {-
 =💣= Task 9*
 
@@ -1008,6 +1143,54 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
+newtype Mana = Mana Int deriving (Eq, Ord)
+
+data FighterActor actions = FighterActor {
+    fighterHealth :: Health,
+    fighterAttack :: Attack,
+    fighterDefense :: Defense,
+    fighterMana :: Mana,
+    fighterActions :: [actions]
+}
+
+data KnightAction = KnightAttack | QuaffPotion | CastSpell
+data MonsterAction = MonsterAttack | Flee
+
+class FighterAction a where
+    doAction :: FighterActor a -> FighterActor b -> a -> (Maybe (FighterActor a), FighterActor b)
+
+damage :: Health -> Attack -> Health
+damage (Health h) (Attack a) = Health (h - a)
+
+heal :: Health -> Health -> Health
+heal (Health h) (Health x) = Health (h + x)
+
+drain :: Mana -> Mana -> Mana
+drain (Mana m) (Mana x) = Mana (m - x)
+
+doAttack :: FighterActor a -> FighterActor b -> (Maybe (FighterActor a), FighterActor b)
+doAttack me enemy = let h = damage (fighterHealth enemy) (fighterAttack me)
+                        e = enemy { fighterHealth = h }
+                        in (Just me, e)
+
+instance FighterAction KnightAction where
+    doAction knight enemy action = case action of
+        KnightAttack -> doAttack knight enemy
+        QuaffPotion -> let h = heal (fighterHealth knight) (Health 10)
+                           k = knight { fighterHealth = h }
+                       in (Just k, enemy)
+        CastSpell -> if fighterMana knight >= Mana 10
+            then let m = drain (fighterMana knight) (Mana 10)
+                     k = knight { fighterMana = m }
+                     h = damage (fighterHealth enemy) (Attack 20)
+                     e = enemy { fighterHealth = h }
+                     in (Just k, e)
+            else (Just knight, enemy)
+
+instance FighterAction MonsterAction where
+    doAction monster enemy action = case action of
+        MonsterAttack -> doAttack monster enemy
+        Flee -> (Nothing, enemy)
 
 {-
 You did it! Now it is time to open pull request with your changes
